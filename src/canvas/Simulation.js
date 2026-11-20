@@ -250,7 +250,19 @@ export class Simulation {
 
       this.pointer.update();
       this.update(this.deltaTime);
+
+      // Clear and prepare renderer for this frame
+      const renderer = this.context.renderer;
+      if (renderer) {
+        renderer.clear();
+        renderer.beginFrame();
+      }
+
       this.render();
+
+      if (renderer) {
+        renderer.endFrame();
+      }
 
       this.performance.beginFrame(currentTime);
       this.performance.setParticleCount(this.particles.getActiveCount());
@@ -281,6 +293,7 @@ export class Simulation {
   }
 
   render() {
+    const renderer = this.context.renderer;
     for (const effectId of this.effectOrder) {
       if (!this.enabledEffects.has(effectId)) continue;
       const effect = this.effects.get(effectId);
