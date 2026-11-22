@@ -11,6 +11,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
   const initializedRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [initError, setInitError] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const resizeObserverRef = useRef(null);
 
   const initialize = useCallback(() => {
@@ -45,6 +46,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
       simulationRef.current = simulation;
       rendererRef.current = renderer;
       initializedRef.current = true;
+      setIsInitializing(false);
 
       if (onSimulationReady) {
         onSimulationReady(simulation, renderer);
@@ -52,6 +54,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
     } catch (e) {
       console.error('CanvasHost initialization failed:', e);
       setInitError(e);
+      setIsInitializing(false);
       if (onSimulationReady) {
         onSimulationReady(null, null);
       }
@@ -117,6 +120,45 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
     };
   }, [initialize, handleResize, onPerformanceUpdate]);
 
+  // Show loading state while initializing
+  if (isInitializing && !initError) {
+    return (
+      <div
+        className="canvas-loading"
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          textAlign: 'center',
+          color: 'var(--fg-secondary)',
+          fontFamily: 'var(--font-ui)',
+          background: 'var(--canvas-bg)',
+        }}
+        role="status"
+        aria-label="Initializing canvas"
+      >
+        <div
+          className="loading-spinner"
+          style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid var(--border-primary)',
+            borderTopColor: 'var(--accent-primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '16px',
+          }}
+          aria-hidden="true"
+        />
+        <p style={{ fontSize: 'var(--fs-base)' }}>Initializing playground...</p>
+      </div>
+    );
+  }
+
   // Show error state if initialization failed
   if (initError) {
     return (
@@ -133,6 +175,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
           textAlign: 'center',
           color: '#ff6b6b',
           fontFamily: 'system-ui, sans-serif',
+          background: 'var(--canvas-bg)',
         }}
         role="alert"
       >
@@ -142,14 +185,14 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
           {initError.stack && `\n\n${initError.stack}`}
         </pre>
         <button
-          onClick={() => { setInitError(null); initializedRef.current = false; }}
+          onClick={() => { setInitError(null); initializedRef.current = false; setIsInitializing(true); }}
           style={{
             marginTop: '12px',
             padding: '8px 16px',
-            background: '#00ffc8',
-            color: '#0a0a0f',
+            background: 'var(--accent-primary)',
+            color: 'var(--fg-inverse)',
             border: 'none',
-            borderRadius: '4px',
+            borderRadius: 'var(--radius-md)',
             cursor: 'pointer',
             fontWeight: 600,
           }}
