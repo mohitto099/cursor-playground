@@ -16,10 +16,16 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
 
   const initialize = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('CanvasHost: canvas ref is null during initialization');
+      return;
+    }
+
+    console.log('[CanvasHost] Initializing canvas...', { width: canvas.clientWidth, height: canvas.clientHeight });
 
     try {
       const { width, height, dpr } = resizeCanvas(canvas);
+      console.log('[CanvasHost] Canvas sized:', { width, height, dpr });
       setDimensions({ width: width / dpr, height: height / dpr });
 
       const simulation = createSimulation(canvas, {
@@ -34,7 +40,9 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
       simulation.context.renderer = renderer;
 
       // Register all effects from the registry
-      for (const effect of effectRegistry.getAllEffects()) {
+      const effects = effectRegistry.getAllEffects();
+      console.log('[CanvasHost] Registering effects:', effects.map(e => e.id));
+      for (const effect of effects) {
         simulation.addEffect(effect);
       }
 
@@ -48,6 +56,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
       initializedRef.current = true;
       setIsInitializing(false);
 
+      console.log('[CanvasHost] Initialization complete, calling onSimulationReady');
       if (onSimulationReady) {
         onSimulationReady(simulation, renderer);
       }
@@ -93,8 +102,12 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
 
   useEffect(() => {
     // Prevent double-initialization from React StrictMode
-    if (initializedRef.current) return;
+    if (initializedRef.current) {
+      console.log('[CanvasHost] Skipping initialization (already initialized)');
+      return;
+    }
 
+    console.log('[CanvasHost] Starting initialization effect');
     initialize();
 
     const handlePerformanceUpdate = (state) => {
@@ -106,6 +119,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
     window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
+      console.log('[CanvasHost] Cleanup');
       unsubscribe?.();
       window.removeEventListener('resize', handleResize);
       if (resizeObserverRef.current) {
@@ -123,6 +137,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    console.log('[CanvasHost] Attaching ResizeObserver');
     const ro = new ResizeObserver(handleResize);
     ro.observe(canvas);
     resizeObserverRef.current = ro;
@@ -133,46 +148,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
     };
   }, [handleResize]);
 
-  // Show loading state while initializing
-  if (isInitializing && !initError) {
-    return (
-      <div
-        className="canvas-loading"
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
-          textAlign: 'center',
-          color: 'var(--fg-secondary)',
-          fontFamily: 'var(--font-ui)',
-          background: 'var(--canvas-bg)',
-        }}
-        role="status"
-        aria-label="Initializing canvas"
-      >
-        <div
-          className="loading-spinner"
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid var(--border-primary)',
-            borderTopColor: 'var(--accent-primary)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            marginBottom: '16px',
-          }}
-          aria-hidden="true"
-        />
-        <p style={{ fontSize: 'var(--fs-base)' }}>Initializing playground...</p>
-      </div>
-    );
-  }
-
-  // Show error state if initialization failed
+  // Show error state if initialization failed (replaces entire canvas)
   if (initError) {
     return (
       <div
@@ -216,18 +192,57 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
     );
   }
 
+  // Always render the canvas; overlay loading spinner while initializing
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        touchAction: 'none',
-      }}
-      aria-label="Cursor Playground canvas"
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <canvas
+        ref={canvasRef}
+        className={className}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block',
+          touchAction: 'none',
+        }}
+        aria-label="Cursor Playground canvas"
+      />
+      {isInitializing && !initError && (
+        <div
+          className="canvas-loading"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            textAlign: 'center',
+            color: 'var(--fg-secondary)',
+            fontFamily: 'var(--font-ui)',
+            background: 'var(--canvas-bg)',
+            zIndex: 10,
+          }}
+          role="status"
+          aria-label="Initializing canvas"
+        >
+          <div
+            className="loading-spinner"
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid var(--border-primary)',
+              borderTopColor: 'var(--accent-primary)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              marginBottom: '16px',
+            }}
+            aria-hidden="true"
+          />
+          <p style={{ fontSize: 'var(--fs-base)' }}>Initializing playground...</p>
+        </div>
+      )}
+    </div>
   );
 }
 
