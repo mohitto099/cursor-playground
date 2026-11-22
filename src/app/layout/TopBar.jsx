@@ -49,19 +49,22 @@ export function TopBar({
       };
       startRecording();
     } else {
-      recordingManager.stopRecording().then((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `cursor-playground-${Date.now()}.webm`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showToast('Recording downloaded!');
-        }
-      });
+      const stopPromise = recordingManager.stopRecording();
+      if (stopPromise) {
+        stopPromise.then((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cursor-playground-${Date.now()}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Recording downloaded!');
+          }
+        });
+      }
     }
   }, [recording]);
 

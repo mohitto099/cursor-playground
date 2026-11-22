@@ -103,22 +103,35 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
 
     const unsubscribe = simulationRef.current?.performance.subscribe(handlePerformanceUpdate);
 
-    const ro = new ResizeObserver(handleResize);
-    ro.observe(canvasRef.current);
-    resizeObserverRef.current = ro;
-
     window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
       unsubscribe?.();
-      ro.disconnect();
       window.removeEventListener('resize', handleResize);
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
       simulationRef.current?.destroy();
       simulationRef.current = null;
       rendererRef.current = null;
       initializedRef.current = false;
     };
   }, [initialize, handleResize, onPerformanceUpdate]);
+
+  // Separate effect for ResizeObserver - only observe after canvas is mounted
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(canvas);
+    resizeObserverRef.current = ro;
+
+    return () => {
+      ro.disconnect();
+      resizeObserverRef.current = null;
+    };
+  }, [handleResize]);
 
   // Show loading state while initializing
   if (isInitializing && !initError) {
