@@ -51,6 +51,10 @@ function App() {
   const canvasContainerRef = useRef(null);
 
   const handleSimulationReady = useCallback((sim, rend) => {
+    if (!sim || !rend) {
+      console.warn('[App] handleSimulationReady called with null simulation/renderer');
+      return;
+    }
     setSimulation(sim);
     setRenderer(rend);
     setPerformance(sim.performance);
@@ -104,7 +108,7 @@ function App() {
 
   const handleChaosMode = useCallback(() => {
     if (!simulation) return;
-    const effects = effectRegistry.getAllEffects();
+    const effects = effectRegistry.getAll();
     const numEffects = Math.floor(Math.random() * 4) + 2;
     const shuffled = [...effects].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, numEffects);

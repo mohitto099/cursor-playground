@@ -40,7 +40,7 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
       simulation.context.renderer = renderer;
 
       // Register all effects from the registry
-      const effects = effectRegistry.getAllEffects();
+      const effects = effectRegistry.getAll();
       console.log('[CanvasHost] Registering effects:', effects.map(e => e.id));
       for (const effect of effects) {
         simulation.addEffect(effect);
@@ -64,9 +64,8 @@ export function CanvasHost({ onSimulationReady, onPerformanceUpdate, className =
       console.error('CanvasHost initialization failed:', e);
       setInitError(e);
       setIsInitializing(false);
-      if (onSimulationReady) {
-        onSimulationReady(null, null);
-      }
+      // Do not call onSimulationReady on failure - error state will be displayed
+      // App.jsx will handle the null simulation state gracefully
     }
   }, [onSimulationReady]);
 
